@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Desktop</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r139/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.139/examples/js/controls/VRButton.js"></script>
+</head>
+<body>
+    <script>
+        // Basic Three.js setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        document.body.appendChild(VRButton.createButton(renderer));
+
+        // Ambient Light
+        const light = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(light);
+
+        // Virtual monitor (plane)
+        const monitorGeometry = new THREE.PlaneGeometry(4, 2.25); // Aspect ratio of 16:9
+        const monitorMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Default black
+        const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
+        monitor.position.set(0, 1.5, -5); // Centered and placed 5 units away
+        scene.add(monitor);
+
+        // Start desktop screen capture
+        async function startDesktopCapture() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                // Update monitor texture with the video stream
+                const videoTexture = new THREE.VideoTexture(video);
+                monitor.material.map = videoTexture;
+                monitor.material.needsUpdate = true;
+            } catch (err) {
+                console.error("Error accessing display media:", err);
+            }
+        }
+
+        // Button to start capture
+        const captureButton = document.createElement('button');
+        captureButton.textContent = "Start Desktop Capture";
+        captureButton.style.position = "absolute";
+        captureButton.style.top = "10px";
+        captureButton.style.left = "10px";
+        captureButton.style.zIndex = "100";
+        document.body.appendChild(captureButton);
+        captureButton.addEventListener("click", startDesktopCapture);
+
+        // Animation loop
+        function animate() {
+            renderer.setAnimationLoop(() => {
+                renderer.render(scene, camera);
+            });
+        }
+
+        animate();
+    </script>
+</body>
+</html>
